@@ -25,9 +25,11 @@
 namespace pocketmine\entity;
 
 use pocketmine\block\Block;
+use pocketmine\block\Fire;
 use pocketmine\block\Portal;
 use pocketmine\block\PressurePlate;
 use pocketmine\block\Water;
+use pocketmine\block\SlimeBlock;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\entity\EntityDespawnEvent;
 use pocketmine\event\entity\EntityLevelChangeEvent;
@@ -78,9 +80,10 @@ abstract class Entity extends Location implements Metadatable{
 	const DATA_TYPE_STRING = 4;
 	const DATA_TYPE_SLOT = 5;
 	const DATA_TYPE_POS = 6;
-	const DATA_TYPE_ROTATION = 7;
-	const DATA_TYPE_LONG = 8;
-
+	//const DATA_TYPE_ROTATION = 8;
+	//const DATA_TYPE_LONG = 8;
+	const DATA_TYPE_LONG = 7;
+	
 	const DATA_FLAGS = 0;
 	const DATA_AIR = 1;
 	const DATA_NAMETAG = 2;
@@ -89,6 +92,9 @@ abstract class Entity extends Location implements Metadatable{
 	const DATA_POTION_COLOR = 7;
 	const DATA_POTION_AMBIENT = 8;
 	const DATA_NO_AI = 15;
+
+	const DATA_LEAD_HOLDER = 23;
+	const DATA_LEAD = 24;
 
 
 	const DATA_FLAG_ONFIRE = 0;
@@ -122,6 +128,8 @@ abstract class Entity extends Location implements Metadatable{
 		self::DATA_SHOW_NAMETAG => [self::DATA_TYPE_BYTE, 1],
 		self::DATA_SILENT => [self::DATA_TYPE_BYTE, 0],
 		self::DATA_NO_AI => [self::DATA_TYPE_BYTE, 0],
+		self::DATA_LEAD_HOLDER => [self::DATA_TYPE_LONG, -1],
+		self::DATA_LEAD => [self::DATA_TYPE_BYTE, 0],
 	];
 
 	public $passenger = null;
@@ -638,6 +646,7 @@ abstract class Entity extends Location implements Metadatable{
 	 * @param float             $damage
 	 * @param EntityDamageEvent $source
 	 *
+	 * @return bool
 	 */
 	public function attack($damage, EntityDamageEvent $source){
 		if($this->hasEffect(Effect::FIRE_RESISTANCE)
@@ -650,12 +659,12 @@ abstract class Entity extends Location implements Metadatable{
 
 		$this->server->getPluginManager()->callEvent($source);
 		if($source->isCancelled()){
-			return;
+			return false;
 		}
-
 		$this->setLastDamageCause($source);
 
-		$this->setHealth($this->getHealth() - $source->getFinalDamage());
+		$this->setHealth($this->getHealth() - round($source->getFinalDamage()));
+		return true;
 	}
 
 	/**
@@ -1062,11 +1071,10 @@ abstract class Entity extends Location implements Metadatable{
 			return;
 		}
 		$damage = floor($fallDistance - 3 - ($this->hasEffect(Effect::JUMP) ? $this->getEffect(Effect::JUMP)->getAmplifier() + 1 : 0));
-		foreach($this->getBlocksAround() as $block){
-			if($block->getId() === Block::SLIME_BLOCK){
-				$damage = 0;
-				break;
-			}
+		
+		//Get the block directly beneath the player's feet, check if it is a slime block
+		if($this->getLevel()->getBlock($this->floor()->subtract(0, 1, 0)) instanceof SlimeBlock){
+			$damage = 0;
 		}
 		if($damage > 0){
 			$ev = new EntityDamageEvent($this, EntityDamageEvent::CAUSE_FALL, $damage);
@@ -1127,11 +1135,10 @@ abstract class Entity extends Location implements Metadatable{
 		$blocks = $this->getBlocksAround();
 
 		foreach($blocks as $block){
-			if($block instanceof Portal) return true;
+			if($block instanceof Portal){
+				return true;
+			}
 		}
-		/*
-		$block = $this->getLevel()->getBlock($this->round());
-		if($block instanceof Portal) return true;*/
 
 		return false;
 	}
@@ -1193,7 +1200,7 @@ abstract class Entity extends Location implements Metadatable{
 			$bb->minY -= 0.75;
 			$this->onGround = false;
 			if(!$this->level->getBlock(new Vector3($this->x, $this->y - 1, $this->z))->isTransparent())
-				$this->onGround = \true;
+				$this->onGround = true;
 			/*
                         if(count($this->level->getCollisionBlocks($bb)) > 0){
                             $this->onGround = true;

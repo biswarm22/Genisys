@@ -15,7 +15,7 @@
  * (at your option) any later version.
  *
  * @author iTX Technologies
- * @link https://mcper.cn
+ * @link https://itxtech.org
  *
  */
 
@@ -55,6 +55,10 @@ class Portal extends Transparent{
 
 	public function getToolType(){
 		return Tool::TYPE_PICKAXE;
+	}
+
+	public function canPassThrough(){
+		return true;
 	}
 
 	public function canBeActivated() : bool {

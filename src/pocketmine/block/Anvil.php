@@ -24,11 +24,15 @@ namespace pocketmine\block;
 use pocketmine\inventory\AnvilInventory;
 use pocketmine\item\Item;
 use pocketmine\item\Tool;
-use pocketmine\level\sound\AnvilBreakSound;
+use pocketmine\level\sound\AnvilFallSound;
 use pocketmine\Player;
 
 class Anvil extends Fallable{
-
+	
+	const NORMAL = 0;
+	const SLIGHTLY_DAMAGED = 4;
+	const VERY_DAMAGED = 8;
+	
 	protected $id = self::ANVIL;
 
 	public function isSolid(){
@@ -60,7 +64,9 @@ class Anvil extends Fallable{
 	}
 
 	public function onActivate(Item $item, Player $player = null){
-		if(!$this->getLevel()->getServer()->anviletEnabled) return true;
+		if(!$this->getLevel()->getServer()->anvilEnabled){
+			return true;
+		}
 		if($player instanceof Player){
 			if($player->isCreative() and $player->getServer()->limitedCreative){
 				return true;
@@ -71,11 +77,10 @@ class Anvil extends Fallable{
 
 		return true;
 	}
-
-	public function onBreak(Item $item) {
-		parent::onBreak($item);
-		$sound = new AnvilBreakSound($this);
-		$this->getLevel()->addSound($sound);
+	
+	public function place(Item $item, Block $block, Block $target, $face, $fx, $fy, $fz, Player $player = null){
+		parent::place($item, $block, $target, $face, $fx, $fy, $fz, $player);
+		$this->getLevel()->addSound(new AnvilFallSound($this));
 	}
 
 	public function getDrops(Item $item) : array {

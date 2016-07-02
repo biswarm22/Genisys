@@ -15,7 +15,7 @@
  * (at your option) any later version.
  *
  * @author iTX Technologies
- * @link https://mcper.cn
+ * @link https://itxtech.org
  *
  */
 
@@ -51,5 +51,6 @@ class BrewingInventory extends ContainerInventory{
 		parent::onSlotChange($index, $before);
 
 		$this->getHolder()->scheduleUpdate();
+		$this->getHolder()->updateSurface();
 	}
 }

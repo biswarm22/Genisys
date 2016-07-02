@@ -21,6 +21,7 @@
 
 namespace pocketmine\inventory;
 
+use pocketmine\item\Item;
 use pocketmine\level\Position;
 use pocketmine\Player;
 
@@ -36,28 +37,24 @@ class AnvilInventory extends ContainerInventory{
 		return $this->holder;
 	}
 
-	public function hasSource(){
-		if($this->getItem(0)->getId() != 0 or $this->getItem(1)->getId() != 0) return true;
+	public function onRename(Item $item, Player $player) : bool{
+		if($player->getExpLevel() > $item->getRepairCost()){
+			$player->setExpLevel($player->getExpLevel() - $item->getRepairCost());
+			return true;
+		}
 		return false;
 	}
-	
-	/*public function sendResult(Player $p){
-		$item = $this->getResult();
-		if($item->equals($this->getItem(0),true,false)) $this->setItem(0,new Item(0));
-		if($item->equals($this->getItem(1),true,false)) $this->setItem(1,new Item(0));
-		$p->getInventory()->addItem($item);
-		$this->setResult(new Item(0));
-	}*/
 
 	public function onClose(Player $who){
 		$who->updateExperience();
 		parent::onClose($who);
-		
-		$this->getHolder()->getLevel()->dropItem($this->getHolder()->add(0.5, 0.5, 0.5), $this->getItem(1));
+
 		$this->getHolder()->getLevel()->dropItem($this->getHolder()->add(0.5, 0.5, 0.5), $this->getItem(0));
+		$this->getHolder()->getLevel()->dropItem($this->getHolder()->add(0.5, 0.5, 0.5), $this->getItem(1));
 
 		$this->clear(0);
 		$this->clear(1);
 		$this->clear(2);
 	}
+
 }

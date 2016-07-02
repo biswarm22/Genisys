@@ -3,7 +3,7 @@
 namespace pocketmine\entity\ai;
 
 use pocketmine\entity\ai\AIHolder;
-use pocketmine\entity\PigZombie;
+//use pocketmine\entity\PigZombie;
 use pocketmine\Player;
 use pocketmine\math\Vector3;
 use pocketmine\math\Vector2;
@@ -78,7 +78,7 @@ class ZombieAI{
 		//$this->getLogger()->info("僵尸数量：".count($this->plugin->zombie));
 		foreach ($this->AIHolder->getServer()->getLevels() as $level) {
 			foreach ($level->getEntities() as $zo){
-				if($zo::NETWORK_ID == Zombie::NETWORK_ID or $zo::NETWORK_ID == PigZombie::NETWORK_ID){
+				if($zo instanceof Zombie){
 					if ($this->AIHolder->willMove($zo)) {
 						if (!isset($this->AIHolder->zombie[$zo->getId()])){
 							$this->AIHolder->zombie[$zo->getId()] = array(
@@ -211,7 +211,7 @@ class ZombieAI{
 	public function ZombieHateFinder() {
 		foreach ($this->AIHolder->getServer()->getLevels () as $level) {
 			foreach ($level->getEntities() as $zo) {
-				if ($zo::NETWORK_ID == Zombie::NETWORK_ID) {
+				if ($zo instanceof Zombie) {
 					if (isset($this->AIHolder->zombie[$zo->getId()])) {
 						$zom = &$this->AIHolder->zombie[$zo->getId()];
 						$h_r = $this->hatred_r;  //仇恨半径
@@ -247,7 +247,7 @@ class ZombieAI{
 	public function ZombieHateWalk() {
 		foreach ($this->AIHolder->getServer()->getLevels () as $level) {
 			foreach ($level->getEntities() as $zo) {
-				if ($zo::NETWORK_ID == Zombie::NETWORK_ID or $zo::NETWORK_ID == PigZombie::NETWORK_ID) {
+				if ($zo instanceof Zombie) {
 					if (isset($this->AIHolder->zombie[$zo->getId()])) {
 						$zom = &$this->AIHolder->zombie[$zo->getId()];
 						//$zom['yup'] = $zom['yup'] - 1;
@@ -399,7 +399,7 @@ $xxx =0;$zzz=0;
 	public function ZombieRandomWalk() {
 		foreach ($this->AIHolder->getServer()->getLevels() as $level) {
 			foreach ($level->getEntities() as $zo) {
-				if ($zo::NETWORK_ID == Zombie::NETWORK_ID or $zo::NETWORK_ID == PigZombie::NETWORK_ID) {
+				if ($zo instanceof Zombie) {
 					if (isset($this->AIHolder->zombie[$zo->getId()])) {
 						$zom = &$this->AIHolder->zombie[$zo->getId()];
 						if ($zom['canAttack'] != 0) {
@@ -527,9 +527,14 @@ $xxx =0;$zzz=0;
 	public function ZombieFire() {
 		foreach ($this->AIHolder->getServer()->getLevels() as $level) {
 			foreach ($level->getEntities() as $zo){
-				if ($zo::NETWORK_ID == Zombie::NETWORK_ID) {
+				if ($zo instanceof Zombie) {
 					//var_dump($p->getLevel()->getTime());
-					if(0 < $level->getTime() and $level->getTime() < 13500){
+					/* Don't use time directly
+					 * Instead, get remainder of current time divided by 24,000
+					 * This tells us the time of day, which is what we really need
+					 */
+					$timeOfDay = abs($level->getTime() % 24000);
+					if(0 < $timeOfDay and $timeOfDay < 13000){
 						$v3 = new Vector3($zo->getX(), $zo->getY(), $zo->getZ());
 						$ok = true;
 						for ($y0 = $zo->getY() + 2; $y0 <= $zo->getY()+10; $y0++) {

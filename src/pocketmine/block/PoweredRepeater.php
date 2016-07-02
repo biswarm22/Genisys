@@ -15,7 +15,7 @@
  * (at your option) any later version.
  *
  * @author iTX Technologies
- * @link https://mcper.cn
+ * @link https://itxtech.org
  *
  */
 
@@ -27,7 +27,7 @@ use pocketmine\math\Vector3;
 use pocketmine\Player;
 
 class PoweredRepeater extends RedstoneSource{
-	protected $id = self::POWERED_REPEATER;
+	protected $id = self::POWERED_REPEATER_BLOCK;
 
 	const ACTION_ACTIVATE = "Repeater Activate";
 	const ACTION_DEACTIVATE = "Repeater Deactivate";
@@ -91,23 +91,23 @@ class PoweredRepeater extends RedstoneSource{
 
 	public function activate(array $ignore = []){
 		if($this->canCalc()){
-			if($this->id != self::POWERED_REPEATER){
-				$this->id = self::POWERED_REPEATER;
+			if($this->id != self::POWERED_REPEATER_BLOCK){
+				$this->id = self::POWERED_REPEATER_BLOCK;
 				$this->getLevel()->setBlock($this, $this, true, false);
 			}
 			$this->getLevel()->setBlockTempData($this, self::ACTION_ACTIVATE);
-			$this->getLevel()->scheduleUpdate($this, $this->getDelayLevel() * $this->getLevel()->getServer()->getTicksPerSecondAverage() / 10);
+			$this->getLevel()->scheduleUpdate($this, $this->getDelayLevel() * 2);
 		}
 	}
 
 	public function deactivate(array $ignore = []){
 		if($this->canCalc()){
-			if($this->id != self::UNPOWERED_REPEATER){
-				$this->id = self::UNPOWERED_REPEATER;
+			if($this->id != self::UNPOWERED_REPEATER_BLOCK){
+				$this->id = self::UNPOWERED_REPEATER_BLOCK;
 				$this->getLevel()->setBlock($this, $this, true, false);
 			}
 			$this->getLevel()->setBlockTempData($this, self::ACTION_DEACTIVATE);
-			$this->getLevel()->scheduleUpdate($this, $this->getDelayLevel() * $this->getLevel()->getServer()->getTicksPerSecondAverage() / 10);
+			$this->getLevel()->scheduleUpdate($this, $this->getDelayLevel() * 2);
 		}
 	}
 

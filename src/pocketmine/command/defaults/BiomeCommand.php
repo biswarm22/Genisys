@@ -15,7 +15,7 @@
  * (at your option) any later version.
  *
  * @author iTX Technologies
- * @link https://mcper.cn
+ * @link https://itxtech.org
  *
  */
 
@@ -52,12 +52,12 @@ class BiomeCommand extends VanillaCommand{
 				$biome = isset($args[1]) ? $args[1] : 1;//默认改成草原
 				if(isset($sender->selectedPos[0]) and isset($sender->selectedPos[1])){
 					if(is_numeric($biome) === false){
-						$sender->sendMessage(TextFormat::RED . "%pocketmine.command.biome.wrongBio");
+						$sender->sendMessage(TextFormat::RED . new TranslationContainer("pocketmine.command.biome.wrongBio"));
 						return false;
 					}
 					$biome = (int) $biome;
 					if($sender->selectedLev[0] !== $sender->selectedLev[1]){
-						$sender->sendMessage(TextFormat::RED . "%pocketmine.command.biome.wrongLev");
+						$sender->sendMessage(TextFormat::RED . new TranslationContainer("pocketmine.command.biome.wrongLev"));
 						return false;
 					}
 					$x1 = min($sender->selectedPos[0][0], $sender->selectedPos[1][0]);
@@ -72,19 +72,19 @@ class BiomeCommand extends VanillaCommand{
 					}
 					$sender->sendMessage(new TranslationContainer("pocketmine.command.biome.set", [$biome]));
 				}else{
-					$sender->sendMessage("%pocketmine.command.biome.noPos");
+					$sender->sendMessage(new TranslationContainer("pocketmine.command.biome.noPos"));
 				}
 			}elseif($args[0] == "color"){
 				$color = isset($args[1]) ? $args[1] : "146,188,89";//1=草原("146,188,89"),2=沙漠(251,183,19)"130,180,147"
 				$a = explode(",", $color);
 				//var_dump($a);
 				if(count($a) != 3){
-					$sender->sendMessage(TextFormat::RED . "%pocketmine.command.biome.wrongCol");
+					$sender->sendMessage(TextFormat::RED . new TranslationContainer("pocketmine.command.biome.wrongCol"));
 					return false;
 				}
 				if(isset($sender->selectedPos[0]) and isset($sender->selectedPos[1])){
 					if($sender->selectedLev[0] !== $sender->selectedLev[1]){
-						$sender->sendMessage(TextFormat::RED . "%pocketmine.command.biome.wrongLev");
+						$sender->sendMessage(TextFormat::RED . new TranslationContainer("pocketmine.command.biome.wrongLev"));
 						return false;
 					}
 					$x1 = min($sender->selectedPos[0][0], $sender->selectedPos[1][0]);
@@ -100,25 +100,25 @@ class BiomeCommand extends VanillaCommand{
 					//$sender->selectedPos = array();
 					$sender->sendMessage(new TranslationContainer("pocketmine.command.biome.color", [$a[0], $a[1], $a[2]]));
 				}else{
-					$sender->sendMessage("%pocketmine.command.biome.noPos");
+					$sender->sendMessage(new TranslationContainer("pocketmine.command.biome.noPos"));
 				}
 			}elseif($args[0] == "pos1"){
-				$x = (int) $sender->getX();
-				$z = (int) $sender->getZ();
+				$x = floor($sender->getX());
+				$z = floor($sender->getZ());
 				$sender->selectedLev[0] = $sender->getlevel();
 				$sender->selectedPos[0][0] = $x;
 				$sender->selectedPos[0][1] = $z;
 				$sender->sendMessage(new TranslationContainer("pocketmine.command.biome.posset", [$sender->selectedLev[0]->getName(), $x, $z, "1"]));
 			}elseif($args[0] == "pos2"){
-				$x = (int) $sender->getX();
-				$z = (int) $sender->getZ();
+				$x = floor($sender->getX());
+				$z = floor($sender->getZ());
 				$sender->selectedLev[1] = $sender->getlevel();
 				$sender->selectedPos[1][0] = $x;
 				$sender->selectedPos[1][1] = $z;
 				$sender->sendMessage(new TranslationContainer("pocketmine.command.biome.posset", [$sender->selectedLev[1]->getname(), $x, $z, "2"]));
 			}elseif($args[0] == "get"){
-				$x = (int) $sender->getX();
-				$z = (int) $sender->getZ();
+				$x = floor($sender->getX());
+				$z = floor($sender->getZ());
 				$biome = $sender->getLevel()->getBiomeId($x, $z);
 				$color = $sender->getLevel()->getBiomeColor($x, $z);
 				$sender->sendMessage(new TranslationContainer("pocketmine.command.biome.get", [$biome, $color[0], $color[1], $color[2]]));
@@ -127,7 +127,7 @@ class BiomeCommand extends VanillaCommand{
 				return true;
 			}
 		}else{
-			$sender->sendMessage("%commands.generic.runingame");
+			$sender->sendMessage(new TranslationContainer("commands.generic.runingame"));
 			return false;
 		}
 	}

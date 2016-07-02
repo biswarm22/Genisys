@@ -727,9 +727,13 @@ class Level implements ChunkManager, Metadatable{
 			return;
 		}else{
 			$this->time += 1;
+			//The below code should not be necessary now that AIs for monsters which burn have been fixed
+			//Now can allow time to continue to day 2, day 3, day 4, etc.
+			/*
 			if($this->time > self::TIME_FULL){
 				$this->time = 0;
 			}
+			*/
 		}
 	}
 
@@ -835,9 +839,17 @@ class Level implements ChunkManager, Metadatable{
 
 		foreach($this->moveToSend as $index => $entry){
 			Level::getXZ($index, $chunkX, $chunkZ);
-			$pk = new MoveEntityPacket();
-			$pk->entities = $entry;
-			$this->addChunkPacket($chunkX, $chunkZ, $pk);
+			foreach($entry as $e) {
+				$pk = new MoveEntityPacket();
+				$pk->eid = $e[0];
+				$pk->x = $e[1];
+				$pk->y = $e[2];
+				$pk->z = $e[3];
+				$pk->yaw = $e[4];
+				$pk->headYaw = $e[5];
+				$pk->pitch = $e[6];
+				$this->addChunkPacket($chunkX, $chunkZ, $pk);
+			}
 		}
 		$this->moveToSend = [];
 
@@ -908,15 +920,16 @@ class Level implements ChunkManager, Metadatable{
 	 * @param bool     $optimizeRebuilds
 	 */
 	public function sendBlocks(array $target, array $blocks, $flags = UpdateBlockPacket::FLAG_NONE, $optimizeRebuilds = false){
-		$pk = new UpdateBlockPacket();
-
+		$batchPacketList = [];
+		$top = -1;
 		if($optimizeRebuilds){
 			$chunks = [];
 			foreach($blocks as $b){
 				if($b === null){
 					continue;
 				}
-
+				++$top;
+				$batchPacketList[$top] = new UpdateBlockPacket();
 				$first = false;
 				if(!isset($chunks[$index = Level::chunkHash($b->x >> 4, $b->z >> 4)])){
 					$chunks[$index] = true;
@@ -924,10 +937,10 @@ class Level implements ChunkManager, Metadatable{
 				}
 
 				if($b instanceof Block){
-					$pk->records[] = [$b->x, $b->z, $b->y, $b->getId(), $b->getDamage(), $first ? $flags : UpdateBlockPacket::FLAG_NONE];
+					$batchPacketList[$top]->records[] = [$b->x, $b->z, $b->y, $b->getId(), $b->getDamage(), $first ? $flags : UpdateBlockPacket::FLAG_NONE];
 				}else{
 					$fullBlock = $this->getFullBlock($b->x, $b->y, $b->z);
-					$pk->records[] = [$b->x, $b->z, $b->y, $fullBlock >> 4, $fullBlock & 0xf, $first ? $flags : UpdateBlockPacket::FLAG_NONE];
+					$batchPacketList[$top]->records[] = [$b->x, $b->z, $b->y, $fullBlock >> 4, $fullBlock & 0xf, $first ? $flags : UpdateBlockPacket::FLAG_NONE];
 				}
 			}
 		}else{
@@ -935,17 +948,18 @@ class Level implements ChunkManager, Metadatable{
 				if($b === null){
 					continue;
 				}
+				++$top;
+				$batchPacketList[$top] = new UpdateBlockPacket();
 				if($b instanceof Block){
-					$pk->records[] = [$b->x, $b->z, $b->y, $b->getId(), $b->getDamage(), $flags];
+					$batchPacketList[$top]->records[] = [$b->x, $b->z, $b->y, $b->getId(), $b->getDamage(), $flags];
 				}else{
 					$fullBlock = $this->getFullBlock($b->x, $b->y, $b->z);
-					$pk->records[] = [$b->x, $b->z, $b->y, $fullBlock >> 4, $fullBlock & 0xf, $flags];
+					$batchPacketList[$top]->records[] = [$b->x, $b->z, $b->y, $fullBlock >> 4, $fullBlock & 0xf, $flags];
 				}
 			}
 		}
-
-
-		Server::broadcastPacket($target, $pk);
+		
+		$this->server->batchPackets($target, $batchPacketList);
 	}
 
 	public function clearCache($full = false){
@@ -1778,7 +1792,7 @@ class Level implements ChunkManager, Metadatable{
 					$ev->setCancelled();
 				}
 			}
-			if($player->isAdventure() or $player->isSpectator()){
+			if($player->isSpectator()){
 				$ev->setCancelled();
 			}
 			$this->server->getPluginManager()->callEvent($ev);
@@ -2679,10 +2693,8 @@ class Level implements ChunkManager, Metadatable{
 		if($entity instanceof Player){
 			unset($this->players[$entity->getId()]);
 			$this->checkSleep();
-		}elseif($entity instanceof XPOrb){
-			$entity->close();
 		}else{
-			$entity->kill();
+			$entity->close();
 		}
 
 		unset($this->entities[$entity->getId()]);

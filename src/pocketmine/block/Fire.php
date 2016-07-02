@@ -68,12 +68,16 @@ class Fire extends Flowable{
 	}
 
 	public function onEntityCollide(Entity $entity){
+		$ProtectL = 0;
 		if(!$entity->hasEffect(Effect::FIRE_RESISTANCE)){
 			$ev = new EntityDamageByBlockEvent($this, $entity, EntityDamageEvent::CAUSE_FIRE, 1);
-			$entity->attack($ev->getFinalDamage(), $ev);
+			if($entity->attack($ev->getFinalDamage(), $ev) === true){
+				$ev->useArmors();
+			}
+			$ProtectL = $ev->getMaxEnchantLevel();
 		}
 
-		$ev = new EntityCombustByBlockEvent($this, $entity, 8);
+		$ev = new EntityCombustByBlockEvent($this, $entity, 8, $ProtectL);
 		if($entity instanceof Arrow){
 			$ev->setCancelled();
 		}
@@ -92,6 +96,8 @@ class Fire extends Flowable{
 			if(!$this->getSide(Vector3::SIDE_DOWN)->isTopFacingSurfaceSolid() and !$this->canNeighborBurn()){
 				$this->getLevel()->setBlock($this, new Air(), true);
 				return Level::BLOCK_UPDATE_NORMAL;
+			}elseif($type == Level::BLOCK_UPDATE_NORMAL or $type == Level::BLOCK_UPDATE_RANDOM){
+				$this->getLevel()->scheduleUpdate($this, $this->getTickRate() + mt_rand(0, 10));
 			}elseif($type == Level::BLOCK_UPDATE_SCHEDULED and $this->getLevel()->getServer()->fireSpread){
 				$forever = $this->getSide(Vector3::SIDE_DOWN)->getId() == Block::NETHERRACK;
 
@@ -121,10 +127,10 @@ class Fire extends Flowable{
 					$this->getLevel()->scheduleUpdate($this, $this->getTickRate() + mt_rand(0, 10));
 
 					if(!$forever and !$this->canNeighborBurn()){
-						if(!$$this->getSide(Vector3::SIDE_DOWN)->isTopFacingSurfaceSolid() or $meta > 3){
+						if(!$this->getSide(Vector3::SIDE_DOWN)->isTopFacingSurfaceSolid() or $meta > 3){
 							$this->getLevel()->setBlock($this, new Air(), true);
 						}
-					}else if(!$forever && !($this->getSide(Vector3::SIDE_DOWN)->getBurnAbility() > 0) && $meta == 15 && mt_rand(0, 4) == 0){
+					}elseif(!$forever && !($this->getSide(Vector3::SIDE_DOWN)->getBurnAbility() > 0) && $meta >= 15 && mt_rand(0, 4) == 0){
 						$this->getLevel()->setBlock($this, new Air(), true);
 					}else{
 						$o = 0;

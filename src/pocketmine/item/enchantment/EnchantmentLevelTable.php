@@ -15,7 +15,7 @@
  * (at your option) any later version.
  *
  * @author iTX Technologies
- * @link https://mcper.cn
+ * @link https://itxtech.org
  *
  */
 
@@ -195,7 +195,7 @@ class EnchantmentLevelTable{
 		$enchantmentIds = [];
 
 		if($item->getId() == Item::BOOK){
-			$enchantmentIds = self::$map;
+			$enchantmentIds = array_keys(self::$map);
 		}elseif($item->isArmor()){
 			$enchantmentIds[] = Enchantment::TYPE_ARMOR_PROTECTION; 
 			$enchantmentIds[] = Enchantment::TYPE_ARMOR_FIRE_PROTECTION; 

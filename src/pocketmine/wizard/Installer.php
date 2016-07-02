@@ -34,6 +34,8 @@ class Installer{
 	const DEFAULT_MEMORY = 512;
 	const DEFAULT_PLAYERS = 20;
 	const DEFAULT_GAMEMODE = 0;
+	const DEFAULT_LEVEL_NAME = "world";
+	const DEFAULT_LEVEL_TYPE = "DEFAULT";
 
 	private $defaultLang;
 
@@ -111,7 +113,9 @@ LICENSE;
 	private function generateBaseConfig(){
 		$config = new Config(\pocketmine\DATA . "server.properties", Config::PROPERTIES);
 		echo "[?] " . $this->lang->name_your_server . " (" . self::DEFAULT_NAME . "): ";
-		$config->set("server-name", $this->getInput(self::DEFAULT_NAME));
+		$server_name = $this->getInput(self::DEFAULT_NAME);
+		$config->set("server-name", $server_name);
+		$config->set("motd", $server_name); //MOTD is now used as server name
 		echo "[*] " . $this->lang->port_warning . "\n";
 		do{
 			echo "[?] " . $this->lang->server_port . " (" . self::DEFAULT_PORT . "): ";
@@ -121,6 +125,19 @@ LICENSE;
 			}
 		}while($port <= 0 or $port > 65535);
 		$config->set("server-port", $port);
+		
+		echo "[?] " . $this->lang->level_name . " (" . self::DEFAULT_LEVEL_NAME . "): ";
+		$config->set("level-name", $this->getInput(self::DEFAULT_LEVEL_NAME));
+		
+		do{
+			echo "[?] " . $this->lang->level_type . " (" . self::DEFAULT_LEVEL_TYPE . "): ";
+			$type = strtoupper((string) $this->getInput(self::DEFAULT_LEVEL_TYPE));
+			if($type != "FLAT" and $type != "DEFAULT"){
+				echo "[!] " . $this->lang->invalid_level_type . "\n";
+			}
+		}while($type != "FLAT" and $type != "DEFAULT");
+		$config->set("level-type", $type);
+		
 		/*echo "[*] " . $this->lang->ram_warning . "\n";
 		echo "[?] " . $this->lang->server_ram . " (" . self::DEFAULT_MEMORY . "): ";
 		$config->set("memory-limit", ((int) $this->getInput(self::DEFAULT_MEMORY)) . "M");*/
@@ -138,6 +155,13 @@ LICENSE;
 			$config->set("spawn-protection", -1);
 		}else{
 			$config->set("spawn-protection", 16);
+		}
+		
+		echo "[?] " . $this->lang->announce_player_achievements . " (y/N): ";
+		if(strtolower($this->getInput("n")) === "y"){
+			$config->set("announce-player-achievements", "on");
+		}else{
+			$config->set("announce-player-achievements", "off");
 		}
 		$config->save();
 	}

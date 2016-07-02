@@ -15,7 +15,7 @@
  * (at your option) any later version.
  *
  * @author iTX Technologies
- * @link https://mcper.cn
+ * @link https://itxtech.org
  *
  */
 
@@ -95,6 +95,10 @@ class XPOrb extends Entity{
 
 			if($this->checkObstruction($this->x, $this->y, $this->z)){
 				$hasUpdate = true;
+			}
+
+			if($this->isInsideOfSolid()){
+				$this->setPosition($expectedPos);
 			}
 
 			if($minDistance <= 1.3){

@@ -29,23 +29,55 @@ use pocketmine\command\PluginIdentifiableCommand;
 use pocketmine\command\SimpleCommandMap;
 use pocketmine\entity\Arrow;
 use pocketmine\entity\Attribute;
+use pocketmine\entity\Bat;
+use pocketmine\entity\Blaze;
+use pocketmine\entity\Boat;
+use pocketmine\entity\CaveSpider;
+use pocketmine\entity\Chicken;
+use pocketmine\entity\Cow;
+use pocketmine\entity\Creeper;
 use pocketmine\entity\Effect;
 use pocketmine\entity\Egg;
+use pocketmine\entity\Enderman;
 use pocketmine\entity\Entity;
 use pocketmine\entity\FallingSand;
 use pocketmine\entity\FishingHook;
+use pocketmine\entity\Ghast;
 use pocketmine\entity\Human;
+use pocketmine\entity\Husk;
+use pocketmine\entity\IronGolem;
 use pocketmine\entity\Item as DroppedItem;
+use pocketmine\entity\LavaSlime;
+use pocketmine\entity\Lightning;
+use pocketmine\entity\Minecart;
 use pocketmine\entity\MinecartChest;
 use pocketmine\entity\MinecartHopper;
 use pocketmine\entity\MinecartTNT;
+use pocketmine\entity\Mooshroom;
+use pocketmine\entity\Ocelot;
+use pocketmine\entity\Painting;
+use pocketmine\entity\Pig;
+use pocketmine\entity\PigZombie;
 use pocketmine\entity\PrimedTNT;
 use pocketmine\entity\Rabbit;
+use pocketmine\entity\Sheep;
+use pocketmine\entity\Silverfish;
+use pocketmine\entity\Skeleton;
+use pocketmine\entity\Slime;
 use pocketmine\entity\Snowball;
+use pocketmine\entity\SnowGolem;
+use pocketmine\entity\Spider;
 use pocketmine\entity\Squid;
+use pocketmine\entity\Stray;
+use pocketmine\entity\ThrownExpBottle;
+use pocketmine\entity\ThrownPotion;
 use pocketmine\entity\Villager;
+use pocketmine\entity\Witch;
+use pocketmine\entity\Wolf;
+use pocketmine\entity\XPOrb;
 use pocketmine\entity\Zombie;
 use pocketmine\entity\ZombieVillager;
+use pocketmine\entity\ai\AIHolder;
 use pocketmine\event\HandlerList;
 use pocketmine\event\level\LevelInitEvent;
 use pocketmine\event\level\LevelLoadEvent;
@@ -106,6 +138,8 @@ use pocketmine\plugin\Plugin;
 use pocketmine\plugin\PluginLoadOrder;
 use pocketmine\plugin\PluginManager;
 use pocketmine\plugin\ScriptPluginLoader;
+use pocketmine\scheduler\CallbackTask;
+use pocketmine\scheduler\DServerTask;
 use pocketmine\scheduler\FileWriteTask;
 use pocketmine\scheduler\SendUsageTask;
 use pocketmine\scheduler\ServerScheduler;
@@ -130,47 +164,13 @@ use pocketmine\utils\Config;
 use pocketmine\utils\LevelException;
 use pocketmine\utils\MainLogger;
 use pocketmine\utils\ServerException;
-use pocketmine\utils\ServerKiller;
 use pocketmine\utils\Terminal;
 use pocketmine\utils\TextFormat;
-//use pocketmine\utils\TextWrapper;
 use pocketmine\utils\Utils;
 use pocketmine\utils\UUID;
 use pocketmine\utils\VersionString;
 
-use pocketmine\entity\Chicken;
-use pocketmine\entity\Cow;
-use pocketmine\entity\Pig;
-use pocketmine\entity\Sheep;
-use pocketmine\entity\Wolf;
-use pocketmine\entity\Mooshroom;
-use pocketmine\entity\Creeper;
-use pocketmine\entity\Skeleton;
-use pocketmine\entity\Spider;
-use pocketmine\entity\PigZombie;
-use pocketmine\entity\Slime;
-use pocketmine\entity\Enderman;
-use pocketmine\entity\Silverfish;
-use pocketmine\entity\CaveSpider;
-use pocketmine\entity\Ghast;
-use pocketmine\entity\LavaSlime;
-use pocketmine\entity\Bat;
-use pocketmine\entity\Blaze;
-use pocketmine\entity\Ocelot;
-use pocketmine\entity\IronGolem;
-use pocketmine\entity\SnowGolem;
-use pocketmine\entity\Lightning;
-use pocketmine\entity\XPOrb;
-use pocketmine\network\protocol\StrangePacket;
-use pocketmine\event\player\PlayerTransferEvent;
-use pocketmine\entity\ai\AIHolder;
-use pocketmine\entity\ThrownExpBottle;
-use pocketmine\entity\Boat;
-use pocketmine\entity\Minecart;
-use pocketmine\entity\ThrownPotion;
-use pocketmine\entity\Painting;
-use pocketmine\scheduler\DServerTask;
-use pocketmine\scheduler\CallbackTask;
+use synapse\Synapse;
 
 /**
  * The class that manages everything
@@ -343,7 +343,6 @@ class Server{
 	public $netherLevel = null;
 	public $weatherRandomDurationMin = 6000;
 	public $weatherRandomDurationMax = 12000;
-	public $lookup = [];
 	public $hungerHealth = 10;
 	public $lightningTime = 200;
 	public $lightningFire = false;
@@ -363,7 +362,7 @@ class Server{
 	public $dserverAllPlayers = 0;
 	public $redstoneEnabled = false;
 	public $allowFrequencyPulse = true;
-	public $anviletEnabled = false;
+	public $anvilEnabled = false;
 	public $pulseFrequency = 20;
 	public $playerMsgType = self::PLAYER_MSG_TYPE_MESSAGE;
 	public $playerLoginMsg = "";
@@ -381,9 +380,15 @@ class Server{
 	public $allowSplashPotion = true;
 	public $fireSpread = false;
 	public $advancedCommandSelector = false;
+	public $synapseConfig = [];
+	public $enchantingTableEnabled = true;
+	public $countBookshelf = false;
 
 	/** @var CraftingDataPacket */
 	private $recipeList = null;
+
+	/** @var Synapse */
+	private $synapse = null;
 
 	/**
 	 * @return string
@@ -397,6 +402,38 @@ class Server{
 	 */
 	public function isRunning(){
 		return $this->isRunning === true;
+	}
+	
+	/**
+	 * @return string
+	 * Returns a formatted string of how long the server has been running for
+	 */
+	public function getUptime(){
+		$time = microtime(true) - \pocketmine\START_TIME;
+
+		$seconds = floor($time % 60);
+		$minutes = null;
+		$hours = null;
+		$days = null;
+
+		if($time >= 60){
+			$minutes = floor(($time % 3600) / 60);
+			if($time >= 3600){
+				$hours = floor(($time % (3600 * 24)) / 3600);
+				if($time >= 3600 * 24){
+					$days = floor($time / (3600 * 24));
+				}
+			}
+		}
+
+		$uptime = ($minutes !== null ?
+				($hours !== null ?
+					($days !== null ?
+						"$days " . $this->getLanguage()->translateString("%pocketmine.command.status.days") . " "
+						: "") . "$hours " . $this->getLanguage()->translateString("%pocketmine.command.status.hours") . " "
+					: "") . "$minutes " . $this->getLanguage()->translateString("%pocketmine.command.status.minutes") . " "
+				: "") . "$seconds " . $this->getLanguage()->translateString("%pocketmine.command.status.seconds");
+		return $uptime;
 	}
 
 	/**
@@ -1496,8 +1533,12 @@ class Server{
 	 * @param string $name
 	 */
 	public function removeOp($name){
-		$this->operators->remove(strtolower($name));
-
+		foreach($this->operators->getAll() as $opName => $dummyValue){
+			if(strtolower($name) === strtolower($opName)){
+				$this->operators->remove($opName);
+			}
+		}
+		
 		if(($player = $this->getPlayerExact($name)) !== null){
 			$player->recalculatePermissions();
 		}
@@ -1662,7 +1703,6 @@ class Server{
 		$this->redstoneEnabled = $this->getAdvancedProperty("redstone.enable", false);
 		$this->allowFrequencyPulse = $this->getAdvancedProperty("redstone.allow-frequency-pulse", false);
 		$this->pulseFrequency = $this->getAdvancedProperty("redstone.pulse-frequency", 20);
-		$this->anviletEnabled = $this->getAdvancedProperty("server.allow-anvilandenchanttable", true);
 		$this->getLogger()->setWrite(!$this->getAdvancedProperty("server.disable-log", false));
 		$this->antiFly = $this->getAdvancedProperty("server.anti-fly", true);
 		$this->asyncChunkRequest = $this->getAdvancedProperty("server.async-chunk-request", true);
@@ -1676,6 +1716,22 @@ class Server{
 		$this->allowSplashPotion = $this->getAdvancedProperty("server.allow-splash-potion", true);
 		$this->fireSpread = $this->getAdvancedProperty("level.fire-spread", false);
 		$this->advancedCommandSelector = $this->getAdvancedProperty("server.advanced-command-selector", false);
+		$this->synapseConfig = [
+			"enabled" => $this->getAdvancedProperty("synapse.enabled", false),
+			"server-ip" => $this->getAdvancedProperty("synapse.server-ip", "127.0.0.1"),
+			"server-port" => $this->getAdvancedProperty("synapse.server-port", 10305),
+			"isMainServer" => $this->getAdvancedProperty("synapse.is-main-server", true),
+			"password" => $this->getAdvancedProperty("synapse.server-password", "123456"),
+			"description" => $this->getAdvancedProperty("synapse.description", "A Synapse client"),
+			"disable-rak" => $this->getAdvancedProperty("synapse.disable-rak", false),
+		];
+		$this->anvilEnabled = $this->getAdvancedProperty("enchantment.enable-anvil", true);
+		$this->enchantingTableEnabled = $this->getAdvancedProperty("enchantment.enable-enchanting-table", true);
+		$this->countBookshelf = $this->getAdvancedProperty("enchantment.count-bookshelf", false);
+	}
+
+	public function isSynapseEnabled() : bool {
+		return (bool) $this->synapseConfig["enabled"];
 	}
 
 	/**
@@ -1762,9 +1818,8 @@ class Server{
 		   §5PocketMine-iTX §3Genisys §fis a fork of PocketMine-MP, made by §5iTX Technologies LLC§f.
 		   §fVersion: §6" . $this->getPocketMineVersion() . "
 		   §fTarget client Version: §d" . \pocketmine\MINECRAFT_VERSION . "
-		   §fLatest source codes are available on https://github.com/iTXTech/Genisys
+		   §fLatest source code is available at https://github.com/iTXTech/Genisys
 		   §fDonate link: http://pl.zxda.net/plugins/203.html
-		   §f如果你在免费使用本核心，希望你可以进入上面的链接捐赠给我们，这会成为我们前进的动力。
 		\n";
 
 			$this->about();
@@ -1804,7 +1859,9 @@ class Server{
 
 			$this->loadAdvancedConfig();
 
-			if($this->expWriteAhead > 0) $this->generateExpCache($this->expWriteAhead);
+			if($this->expWriteAhead > 0){
+				$this->generateExpCache($this->expWriteAhead);
+			}
 
 			$this->logger->info("Loading server properties...");
 			$this->properties = new Config($this->dataPath . "server.properties", Config::PROPERTIES, [
@@ -1934,10 +1991,10 @@ class Server{
 
 			InventoryType::init($this->inventoryNum);
 			Block::init();
+			Enchantment::init();
 			Item::init($this->creativeItemsFromJson);
 			Biome::init();
 			Effect::init();
-			Enchantment::init();
 			Attribute::init();
 			EnchantmentLevelTable::init();
 			Color::init();
@@ -1957,7 +2014,11 @@ class Server{
 
 			$this->queryRegenerateTask = new QueryRegenerateEvent($this, 5);
 
-			$this->network->registerInterface(new RakLibInterface($this));
+			if(!$this->synapseConfig["enabled"] or ($this->synapseConfig["enabled"] and !$this->synapseConfig["disable-rak"])){
+				$this->network->registerInterface(new RakLibInterface($this));
+			}else{
+				$this->logger->notice("RakLib has been disabled by synapse.disable-rak option");
+			}
 
 			$this->pluginManager->loadPlugins($this->pluginPath);
 
@@ -2047,6 +2108,10 @@ class Server{
 				"updateDServerInfo"
 			]), $this->dserverConfig["timer"]);
 
+			if($this->isSynapseEnabled()){
+				$this->synapse = new Synapse($this, $this->synapseConfig);
+			}
+
 			if($cfgVer != $advVer){
 				$this->logger->notice("Your genisys.yml needs update");
 				$this->logger->notice("Current Version: $advVer   Latest Version: $cfgVer");
@@ -2060,55 +2125,12 @@ class Server{
 		}
 	}
 
-	//@Deprecated
-	public function transferPlayer(Player $player, $address, $port = 19132){
-		$this->logger->error("This function (transferPlayer) has been deprecated. A new method may be available soon");
+	/**
+	 * @return Synapse
+	 */
+	public function getSynapse(){
+		return $this->synapse;
 	}
-	/*$ev = new PlayerTransferEvent($player, $address, $port);
-	$this->getPluginManager()->callEvent($ev);
-	if ($ev->isCancelled()) {
-		return false;
-	}
-
-	$ip = $this->lookupAddress($ev->getAddress());
-
-	if ($ip === null) {
-		return false;
-	}
-
-	$packet = new StrangePacket();
-	$packet->address = $ip;
-	$packet->port = $ev->getPort();
-	$player->dataPacket($packet);
-	$player->setTransfered($address . ":" . $port);
-
-	return true;
-}
-
-public function cleanLookupCache() {
-	$this->lookup = [];
-}
-
-private function lookupAddress($address) {
-	//IP address
-	if (preg_match("/^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$/", $address) > 0) {
-		return $address;
-	}
-
-	$address = strtolower($address);
-
-	if (isset($this->lookup[$address])) {
-		return $this->lookup[$address];
-	}
-
-	$host = gethostbyname($address);
-	if ($host === $address) {
-		return null;
-	}
-
-	$this->lookup[$address] = $host;
-	return $host;
-}*/
 
 	/**
 	 * @param string        $message
@@ -2472,6 +2494,11 @@ private function lookupAddress($address) {
 				$this->network->unregisterInterface($interface);
 			}
 
+			if($this->isSynapseEnabled()){
+				$this->getLogger()->debug("Stopping Synapse client");
+				$this->synapse->shutdown();
+			}
+
 			//$this->memoryManager->doObjectCleanup();
 
 			gc_collect_cycles();
@@ -2652,11 +2679,7 @@ private function lookupAddress($address) {
 			$this->tick();
 			$next = $this->nextTick - 0.0001;
 			if($next > microtime(true)){
-				try{
-					time_sleep_until($next);
-				}catch(\Throwable $e){
-					//Sometimes $next is less than the current time. High load?
-				}
+				@time_sleep_until($next);
 			}
 		}
 	}
@@ -2678,7 +2701,7 @@ private function lookupAddress($address) {
 	public function addOnlinePlayer(Player $player){
 		$this->playerList[$player->getRawUniqueId()] = $player;
 
-		$this->updatePlayerListData($player->getUniqueId(), $player->getId(), $player->getDisplayName(), $player->getSkinName(), $player->getSkinData());
+		$this->updatePlayerListData($player->getUniqueId(), $player->getId(), $player->getDisplayName(), $player->getSkinId(), $player->getSkinData());
 	}
 
 	public function removeOnlinePlayer(Player $player){
@@ -2692,10 +2715,10 @@ private function lookupAddress($address) {
 		}
 	}
 
-	public function updatePlayerListData(UUID $uuid, $entityId, $name, $skinName, $skinData, array $players = null){
+	public function updatePlayerListData(UUID $uuid, $entityId, $name, $skinId, $skinData, array $players = null){
 		$pk = new PlayerListPacket();
 		$pk->type = PlayerListPacket::TYPE_ADD;
-		$pk->entries[] = [$uuid, $entityId, $name, $skinName, $skinData];
+		$pk->entries[] = [$uuid, $entityId, $name, $skinId, $skinData];
 		Server::broadcastPacket($players === null ? $this->playerList : $players, $pk);
 	}
 
@@ -2710,7 +2733,7 @@ private function lookupAddress($address) {
 		$pk = new PlayerListPacket();
 		$pk->type = PlayerListPacket::TYPE_ADD;
 		foreach($this->playerList as $player){
-			$pk->entries[] = [$player->getUniqueId(), $player->getId(), $player->getDisplayName(), $player->getSkinName(), $player->getSkinData()];
+			$pk->entries[] = [$player->getUniqueId(), $player->getId(), $player->getDisplayName(), $player->getSkinId(), $player->getSkinData()];
 		}
 
 		$p->dataPacket($pk);
@@ -2945,6 +2968,9 @@ private function lookupAddress($address) {
 
 		Timings::$connectionTimer->startTiming();
 		$this->network->processInterfaces();
+		if($this->isSynapseEnabled()){
+			$this->synapse->tick();
+		}
 
 		if($this->rcon !== null){
 			$this->rcon->check();
@@ -3034,49 +3060,52 @@ private function lookupAddress($address) {
 
 	private function registerEntities(){
 		Entity::registerEntity(Arrow::class);
-		Entity::registerEntity(DroppedItem::class);
-		Entity::registerEntity(FallingSand::class);
-		Entity::registerEntity(PrimedTNT::class);
-		Entity::registerEntity(Snowball::class);
-		Entity::registerEntity(Villager::class);
-		Entity::registerEntity(Zombie::class);
-		Entity::registerEntity(Squid::class);
-		Entity::registerEntity(Chicken::class);
-		Entity::registerEntity(Cow::class);
-		Entity::registerEntity(Pig::class);
-		Entity::registerEntity(Sheep::class);
-		Entity::registerEntity(Wolf::class);
-		Entity::registerEntity(Mooshroom::class);
-		Entity::registerEntity(Creeper::class);
-		Entity::registerEntity(Skeleton::class);
-		Entity::registerEntity(Spider::class);
-		Entity::registerEntity(PigZombie::class);
-		Entity::registerEntity(Slime::class);
-		Entity::registerEntity(Enderman::class);
-		Entity::registerEntity(Silverfish::class);
-		Entity::registerEntity(CaveSpider::class);
-		Entity::registerEntity(Ghast::class);
-		Entity::registerEntity(LavaSlime::class);
 		Entity::registerEntity(Bat::class);
 		Entity::registerEntity(Blaze::class);
-		Entity::registerEntity(Ocelot::class);
-		Entity::registerEntity(SnowGolem::class);
-		Entity::registerEntity(IronGolem::class);
-		Entity::registerEntity(Lightning::class);
-		Entity::registerEntity(XPOrb::class);
-		Entity::registerEntity(ThrownExpBottle::class);
 		Entity::registerEntity(Boat::class);
-		Entity::registerEntity(Minecart::class);
-		Entity::registerEntity(ThrownPotion::class);
-		Entity::registerEntity(Painting::class);
-		Entity::registerEntity(FishingHook::class);
+		Entity::registerEntity(CaveSpider::class);
+		Entity::registerEntity(Chicken::class);
+		Entity::registerEntity(Cow::class);
+		Entity::registerEntity(Creeper::class);
+		Entity::registerEntity(DroppedItem::class);
 		Entity::registerEntity(Egg::class);
-		Entity::registerEntity(ZombieVillager::class);
-		Entity::registerEntity(Rabbit::class);
+		Entity::registerEntity(Enderman::class);
+		Entity::registerEntity(FallingSand::class);
+		Entity::registerEntity(FishingHook::class);
+		Entity::registerEntity(Ghast::class);
+		Entity::registerEntity(Husk::class);
+		Entity::registerEntity(IronGolem::class);
+		Entity::registerEntity(LavaSlime::class); //Magma Cube
+		Entity::registerEntity(Lightning::class);
+		Entity::registerEntity(Minecart::class);
 		Entity::registerEntity(MinecartChest::class);
 		Entity::registerEntity(MinecartHopper::class);
 		Entity::registerEntity(MinecartTNT::class);
-
+		Entity::registerEntity(Mooshroom::class);
+		Entity::registerEntity(Ocelot::class);
+		Entity::registerEntity(Painting::class);
+		Entity::registerEntity(Pig::class);
+		Entity::registerEntity(PigZombie::class);
+		Entity::registerEntity(PrimedTNT::class);
+		Entity::registerEntity(Rabbit::class);
+		Entity::registerEntity(Sheep::class);
+		Entity::registerEntity(Silverfish::class);
+		Entity::registerEntity(Skeleton::class);
+		Entity::registerEntity(Slime::class);
+		Entity::registerEntity(Snowball::class);
+		Entity::registerEntity(SnowGolem::class);
+		Entity::registerEntity(Spider::class);
+		Entity::registerEntity(Squid::class);
+		Entity::registerEntity(Stray::class);
+		Entity::registerEntity(ThrownExpBottle::class);
+		Entity::registerEntity(ThrownPotion::class);
+		Entity::registerEntity(Villager::class);
+		Entity::registerEntity(Witch::class);
+		Entity::registerEntity(Wolf::class);
+		Entity::registerEntity(XPOrb::class);
+		Entity::registerEntity(Zombie::class);
+		Entity::registerEntity(ZombieVillager::class);
+		
 		Entity::registerEntity(Human::class, true);
 	}
 

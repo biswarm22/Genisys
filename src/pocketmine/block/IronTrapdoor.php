@@ -15,7 +15,7 @@
  * (at your option) any later version.
  *
  * @author iTX Technologies
- * @link https://mcper.cn
+ * @link https://itxtech.org
  *
  */
 
@@ -24,11 +24,7 @@ namespace pocketmine\block;
 class IronTrapdoor extends Trapdoor {
 	protected $id = self::IRON_TRAPDOOR;
 
-	public function __construct($meta = 0) {
-		$this->meta = $meta;
-	}
-
-	public function getName() {
+	public function getName() : string{
 		return "Iron Trapdoor";
 	}
 

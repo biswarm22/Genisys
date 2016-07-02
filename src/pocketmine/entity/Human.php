@@ -26,6 +26,7 @@ use pocketmine\event\entity\EntityRegainHealthEvent;
 use pocketmine\event\player\PlayerExhaustEvent;
 use pocketmine\inventory\InventoryHolder;
 use pocketmine\inventory\PlayerInventory;
+use pocketmine\item\enchantment\Enchantment;
 use pocketmine\item\Item as ItemItem;
 use pocketmine\nbt\NBT;
 use pocketmine\nbt\tag\ByteTag;
@@ -36,7 +37,7 @@ use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\tag\ShortTag;
 use pocketmine\nbt\tag\StringTag;
 use pocketmine\network\protocol\AddPlayerPacket;
-use pocketmine\network\protocol\RemovePlayerPacket;
+use pocketmine\network\protocol\RemoveEntityPacket;
 use pocketmine\Player;
 use pocketmine\utils\UUID;
 
@@ -60,7 +61,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 	public $height = 1.8;
 	public $eyeHeight = 1.62;
 
-	protected $skinName;
+	protected $skinId;
 	protected $skin;
 
 	protected $foodTickTimer = 0;
@@ -72,8 +73,8 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 		return $this->skin;
 	}
 
-	public function getSkinName(){
-		return $this->skinName;
+	public function getSkinId(){
+		return $this->skinId;
 	}
 
 	/**
@@ -92,11 +93,11 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 
 	/**
 	 * @param string $str
-	 * @param string $skinName
+	 * @param string $skinId
 	 */
-	public function setSkin($str, $skinName){
+	public function setSkin($str, $skinId){
 		$this->skin = $str;
-		$this->skinName = $skinName;
+		$this->skinId = $skinId;
 	}
 
 	public function getFood() : float{
@@ -344,8 +345,11 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 		$this->attributeMap->addAttribute(Attribute::getAttribute(Attribute::MOVEMENT_SPEED));
 	}
 
-	public function entityBaseTick($tickDiff = 1){
-		$hasUpdate = parent::entityBaseTick($tickDiff);
+	public function entityBaseTick($tickDiff = 1, $EnchantL = 0){
+		if($this->getInventory() instanceof PlayerInventory){
+			$EnchantL = $this->getInventory()->getHelmet()->getEnchantmentLevel(Enchantment::TYPE_WATER_BREATHING);
+		}
+		$hasUpdate = parent::entityBaseTick($tickDiff, $EnchantL);
 
 		/*$food = $this->getFood();
 		$health = $this->getHealth();
@@ -445,7 +449,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 		if(strlen($this->getSkinData()) > 0){
 			$this->namedtag->Skin = new CompoundTag("Skin", [
 				"Data" => new StringTag("Data", $this->getSkinData()),
-				"Name" => new StringTag("Name", $this->getSkinName())
+				"Name" => new StringTag("Name", $this->getSkinId())
 			]);
 		}
 	}
@@ -459,7 +463,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 			}
 
 			if(!($this instanceof Player)){
-				$this->server->updatePlayerListData($this->getUniqueId(), $this->getId(), $this->getName(), $this->skinName, $this->skin, [$player]);
+				$this->server->updatePlayerListData($this->getUniqueId(), $this->getId(), $this->getName(), $this->skinId, $this->skin, [$player]);
 			}
 
 			$pk = new AddPlayerPacket();
@@ -491,9 +495,8 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 	public function despawnFrom(Player $player){
 		if(isset($this->hasSpawned[$player->getLoaderId()])){
 
-			$pk = new RemovePlayerPacket();
+			$pk = new RemoveEntityPacket();
 			$pk->eid = $this->getId();
-			$pk->clientId = $this->getUniqueId();
 			$player->dataPacket($pk);
 			unset($this->hasSpawned[$player->getLoaderId()]);
 		}
